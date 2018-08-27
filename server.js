@@ -17,7 +17,9 @@ app.get('/posts', (req, res) => {
   BlogPost
     .find()
     .then(posts => {
-      res.json(posts.map(post => post.serialize()));
+      console.log("here!");
+      res.json({post: "What the hell?"});
+      // res.json(posts.map(post => post.serialize()));
     })
     .catch(err => {
       console.error(err);
