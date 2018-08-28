@@ -17,9 +17,7 @@ app.get('/posts', (req, res) => {
   BlogPost
     .find()
     .then(posts => {
-      console.log("here!");
-      res.json({post: "What the hell?"});
-      // res.json(posts.map(post => post.serialize()));
+      res.json(posts.map(post => post.serialize()));
     })
     .catch(err => {
       console.error(err);
@@ -120,7 +118,7 @@ let server;
 // this function connects to our database, then starts the server
 function runServer(databaseUrl, port = PORT) {
   return new Promise((resolve, reject) => {
-    mongoose.connect(databaseUrl, err => {
+    mongoose.connect(databaseUrl, { useNewUrlParser: true }, err => {
       if (err) {
         return reject(err);
       }

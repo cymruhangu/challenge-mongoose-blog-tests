@@ -8,7 +8,7 @@ const mongoose = require('mongoose');
 // this makes the expect syntax available throughout
 // this module
 const expect = chai.expect;
-a
+
 const {BlogPost } = require('../models');
 const {app, runServer, closeServer} = require('../server');
 const {TEST_DATABASE_URL} = require('../config');
@@ -42,16 +42,6 @@ function generateBlogTitle() {
 function generateBlogContent() {
   const contents = ['Eiusmod aliquip labore Anim culpa laborum irure irure mollit culpa laborum ullamco irure aliquip enim.veniam duis elit.', 'Quis incididunt ex nisi mollit magna mollit voluptate duis eu aliquip Lorem ex.', 'Incididunt eiusmod qui et aute esse exercitation sint veniam est aliquip eu ea.'];
   return contents[Math.floor(Math.random() * contents.length)];
-}
-
-// used to generate data to put in db
-function generateAuthor() {
-  const authors = ['Ernest Hemmingway', 'Malcom Gladwell', 'Stephen King', 'Thomas Friedman', 'Gertrude Stein'];
-  const author = authors[Math.floor(Math.random() * authors.length)];
-  return {
-    date: faker.date.past(),
-    grade: grade
-  };
 }
 
 // generate an object represnting a blogpost.
@@ -89,7 +79,7 @@ describe('BlogPosts API resource', function() {
   });
 
   beforeEach(function() {
-    return seedBlogPosttData();
+    return seedBlogPostData();
   });
 
   afterEach(function() {
@@ -122,17 +112,17 @@ describe('BlogPosts API resource', function() {
           res = _res;
           expect(res).to.have.status(200);
           // otherwise our db seeding didn't work
-          expect(res.body.blogposts).to.have.lengthOf.at.least(1);
+          expect(res.body).to.have.lengthOf.at.least(1);  ///////////
           return BlogPost.count();
         })
         .then(function(count) {
-          expect(res.body.blogposts).to.have.lengthOf(count);
+          expect(res.body).to.have.lengthOf(count);
         });
     });
 
 
     it('should return blogposts with right fields', function() {
-      // Strategy: Get back all restaurants, and ensure they have expected keys
+      // Strategy: Get back all blogposts, and ensure they have expected keys
 
       let resPost;
       return chai.request(app)
@@ -140,15 +130,16 @@ describe('BlogPosts API resource', function() {
         .then(function(res) {
           expect(res).to.have.status(200);
           expect(res).to.be.json;
-          expect(res.body.posts).to.be.a('array');
-          expect(res.body.posts).to.have.lengthOf.at.least(1);
+          expect(res.body).to.be.a('array');
+          expect(res.body).to.have.lengthOf.at.least(1);
 
-          res.body.posts.forEach(function(post) {
-            expect(postt).to.be.a('object');
+          res.body.forEach(function(post) {
+            expect(post).to.be.a('object');
             expect(post).to.include.keys(
               'id', 'title', 'content', 'author');
           });
-          resPost = res.body.posts[0];
+          resPost = res.body[0];
+          // console.log(resPost);
           return BlogPost.findById(resPost.id);
         })
         .then(function(post) {
@@ -156,8 +147,8 @@ describe('BlogPosts API resource', function() {
           expect(resPost.id).to.equal(post.id);
           expect(resPost.title).to.equal(post.title);
           expect(resPost.content).to.equal(post.content);
-          expect(resPost.author.firstName).to.equal(post.author.firstName);
-          expect(resPost.author.LastName).to.equal(post.author.lastName);
+          // console.log(`author is ${resPost.author}`);
+          expect(resPost.author).to.equal(post.authorName);
 
         });
     });
@@ -170,12 +161,11 @@ describe('BlogPosts API resource', function() {
     // the data was inserted into db)
     it('should add a new blogpost', function() {
 
-      const newBlogpost = generateBlogPostData();
-      let mostRecentGrade;  //??????????????
-
+      const newBlogPost = generateBlogPostData();
+      
       return chai.request(app)
         .post('/posts')
-        .send(newBlogPost)
+        .send(newBlogPost)  /////////////////
         .then(function(res) {
           expect(res).to.have.status(201);
           expect(res).to.be.json;
@@ -187,21 +177,14 @@ describe('BlogPosts API resource', function() {
           expect(res.body.id).to.not.be.null;
           expect(res.body.content).to.equal(newBlogPost.content);
           expect(res.body.author.firstName).to.equal(newBlogPost.firstName);
-///?????
-          mostRecentGrade = newRestaurant.grades.sort(
-            (a, b) => b.date - a.date)[0].grade;
 
-          expect(res.body.grade).to.equal(mostRecentGrade);
-          return Restaurant.findById(res.body.id);
+          return BlogPost.findById(res.body.id);
         })
-        .then(function(restaurant) {
-          expect(restaurant.name).to.equal(newRestaurant.name);
-          expect(restaurant.cuisine).to.equal(newRestaurant.cuisine);
-          expect(restaurant.borough).to.equal(newRestaurant.borough);
-          expect(restaurant.grade).to.equal(mostRecentGrade);
-          expect(restaurant.address.building).to.equal(newRestaurant.address.building);
-          expect(restaurant.address.street).to.equal(newRestaurant.address.street);
-          expect(restaurant.address.zipcode).to.equal(newRestaurant.address.zipcode);
+        .then(function(blogpost) {
+          expect(blogpost.title).to.equal(newBlogPost.title);
+          expect(blogpost.content).to.equal(newBlogPost.content);
+          expect(blogpost.author.firstName).to.equal(newBlogPost.author.firstName);
+          expect(blogpost.author.firstName).to.equal(newBlogPost.author.firstName);
         });
     });
   });
@@ -209,61 +192,65 @@ describe('BlogPosts API resource', function() {
   describe('PUT endpoint', function() {
 
     // strategy:
-    //  1. Get an existing restaurant from db
-    //  2. Make a PUT request to update that restaurant
-    //  3. Prove restaurant returned by request contains data we sent
-    //  4. Prove restaurant in db is correctly updated
+    //  1. Get an existing blogpost from db
+    //  2. Make a PUT request to update that blogpost
+    //  3. Prove blogpost returned by request contains data we sent
+    //  4. Prove blogpost in db is correctly updated
     it('should update fields you send over', function() {
       const updateData = {
-        name: 'fofofofofofofof',
-        cuisine: 'futuristic fusion'
+        title: 'fofofofofofofof',
+        content: 'Non veniam aute consectetur enim sit nisi id.',
+        author: {
+          firstName: 'Walter',
+          lastName: 'Cronkite'
+        }
       };
 
-      return Restaurant
+      return BlogPost
         .findOne()
-        .then(function(restaurant) {
-          updateData.id = restaurant.id;
+        .then(function(blogpost) {
+          updateData.id = blogpost.id;
 
           // make request then inspect it to make sure it reflects
           // data we sent
           return chai.request(app)
-            .put(`/restaurants/${restaurant.id}`)
+            .put(`/posts/${blogpost.id}`)
             .send(updateData);
         })
         .then(function(res) {
           expect(res).to.have.status(204);
 
-          return Restaurant.findById(updateData.id);
+          return BlogPost.findById(updateData.id);
         })
-        .then(function(restaurant) {
-          expect(restaurant.name).to.equal(updateData.name);
-          expect(restaurant.cuisine).to.equal(updateData.cuisine);
+        .then(function(blogpost) {
+          expect(blogpost.title).to.equal(updateData.title);
+          expect(blogpost.cuisine).to.equal(updateData.cuisine);
         });
     });
   });
 
   describe('DELETE endpoint', function() {
     // strategy:
-    //  1. get a restaurant
-    //  2. make a DELETE request for that restaurant's id
+    //  1. get a blogpostt
+    //  2. make a DELETE request for that blogpost's id
     //  3. assert that response has right status code
-    //  4. prove that restaurant with the id doesn't exist in db anymore
-    it('delete a restaurant by id', function() {
+    //  4. prove that blogpost with the id doesn't exist in db anymore
+    it('delete a blogpost by id', function() {
 
-      let restaurant;
+      let blogpost;
 
-      return Restaurant
+      return BlogPost
         .findOne()
-        .then(function(_restaurant) {
-          restaurant = _restaurant;
-          return chai.request(app).delete(`/restaurants/${restaurant.id}`);
+        .then(function(_blogpost) {
+          blogpost = _blogpost;
+          return chai.request(app).delete(`/posts/${blogpost.id}`);
         })
         .then(function(res) {
           expect(res).to.have.status(204);
-          return Restaurant.findById(restaurant.id);
+          return BlogPost.findById(blogpost.id);
         })
-        .then(function(_restaurant) {
-          expect(_restaurant).to.be.null;
+        .then(function(_blogpost) {
+          expect(_blogpost).to.be.null;
         });
     });
   });
