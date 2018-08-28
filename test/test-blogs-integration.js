@@ -211,8 +211,7 @@ describe('BlogPosts API resource', function() {
         .then(function(blogpost) {
           updateData.id = blogpost.id;
 
-          // make request then inspect it to make sure it reflects
-          // data we sent
+          // make request then inspect it to make sure it reflects data we sent
           return chai.request(app)
             .put(`/posts/${blogpost.id}`)
             .send(updateData);
